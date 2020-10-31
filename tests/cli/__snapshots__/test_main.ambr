@@ -1,0 +1,6 @@
+# name: test_main_runs_main
+  '
+  usage: __main__.py command
+  __main__.py: error: the following arguments are required: command
+  '
+---
