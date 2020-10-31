@@ -1,0 +1,97 @@
+name: App CI
+
+on: [push, repository_dispatch, workflow_dispatch]
+
+env:
+  CI: true
+
+jobs:
+  debug:
+    name: Debug
+    if: startsWith(github.ref, 'refs/heads/debug')
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - run: . script/bootstrap
+      - name: Start SSH Session ${{ matrix.os }}
+        if: contains(github.ref, runner.os)
+        uses: luchihoratiu/debug-via-ssh@v1.0
+        with:
+          NGROK_AUTH_TOKEN: ${{ secrets.DEBUG_NGROK_TOKEN }}
+          SSH_PASS: ${{ secrets.DEBUG_SSH_PASSWORD }}
+
+  analysis:
+    name: Code Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - name: Lint
+        run: |
+          . script/bootstrap
+          poetry run inv lint
+
+  build:
+    name: Build
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - name: Test
+        run: |
+          . script/bootstrap
+          env PYTHONPATH=$GITHUB_WORKSPACE poetry run inv test --coverage
+
+  release:
+    name: Release
+    needs: [analysis, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-python@v2
+      - uses: cycjimmy/semantic-release-action@v2
+        with:
+          branch: main
+          dry_run: true
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            @semantic-release/github
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Test Publish
+        env:
+          TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+        run: |
+          . script/bootstrap
+          poetry-dynamic-versioning
+          poetry config repositories.test-pypi https://test.pypi.org/legacy/
+          poetry publish --build -r test-pypi -u $TWINE_USERNAME -p $TWINE_PASSWORD
+      - name: Publish
+        if: steps.semantic.outputs.new_release_published == 'true'
+        env:
+          TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+        run: |
+          poetry publish --build -u $TWINE_USERNAME -p $TWINE_PASSWORD
+
+  benchmark:
+    name: Benchmark
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      # - run: . script/bootstrap
+      #   env:
+      #     SKIP_DEPS: 1
+      # TODO: Use benchmarker github action to profile this distributable
+      # - uses: benchmarker/github-action@v1

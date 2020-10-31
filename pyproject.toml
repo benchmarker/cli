@@ -1,0 +1,107 @@
+[build-system]
+requires = ["poetry>=1.1.0", "poetry-dynamic-versioning"]
+build-backend = "poetry.masonry.api"
+
+[tool.black]
+line-length = 88
+target-version = ['py36']
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.eggs         # exclude a few common directories in the
+    | \.git          # root of the project
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.vscode
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+  )/
+  | foo.py           # also separately exclude a file named foo.py in
+                     # the root of the project
+)
+'''
+
+[tool.coverage.run]
+source = [
+  './benchmarker',
+]
+
+[tool.coverage.report]
+exclude_lines = [
+  'pragma: no-cover',
+  'if TYPE_CHECKING:',
+  '@abstractmethod',
+]
+
+[tool.flake8]
+max-line-length = 88
+
+[tool.isort]
+force_grid_wrap = 2
+known_first_party = 'benchmarker'
+profile = 'black'
+skip = '''
+.eggs,
+.mypy_cache,
+.venv,
+build,
+dist,
+'''
+
+[tool.mypy]
+mypy_path = 'stubs'
+
+[tool.poetry]
+name = "benchmarker-cli"
+version = "0.0.0"
+description = "⏱ Command line tool for running and reporting benchmarks"
+authors = ["Emmanuel <eogbizi@gmail.com>"]
+include = [
+  "LICENSE",
+]
+packages = [
+  { include = "benchmarker" }
+]
+readme = "README.md"
+homepage = "https://github.com/benchmarker/cli"
+repository = "https://github.com/benchmarker/cli"
+keywords = ["cli", "benchmark", "profile", "benchmarker", "profiler"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: System Administrators",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development",
+  "Topic :: System :: Benchmark",
+]
+
+[tool.poetry.dependencies]
+python = "^3.7.0"
+colored = "^1.4.3"
+pyperf = "^2.3.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0.0"
+py-githooks = "^1.1.1"
+invoke = "^1.6.0"
+black = "^22.1.0"
+isort = "^5.10.1"
+mypy = "^0.931"
+flake8 = "^4.0.1"
+pyproject-flake8 = "^0.0.1-alpha.2"
+coverage = "^6.3.2"
+codecov = "^2.1.12"
+syrupy = "^1.7.4"
+poetry-dynamic-versioning = "^0.13.1"
+Jinja2 = "^3.0.3"
+
+[tool.poetry-dynamic-versioning]
+enable = true
+style = "pep440"
+format-jinja = "{{ base }}.dev{{ distance }}{{ commit | replace('a', '') | replace('b', '') | replace('c', '') | replace('d', '') | replace('e', '') | replace('f', '') | replace('g', '') | replace('h', '') | replace('i', '') | replace('j', '') | replace('k', '') | replace('l', '') | replace('m', '') | replace('n', '') | replace('o', '') | replace('p', '') | replace('q', '') | replace('r', '') | replace('s', '') | replace('t', '') | replace('u', '') | replace('v', '') | replace('w', '') | replace('x', '') | replace('y', '') | replace('z', '') }}"
