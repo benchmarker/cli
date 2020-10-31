@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+
+# Assumes $PWD is the project root
+
+stack exec benchmarker run

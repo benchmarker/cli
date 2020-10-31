@@ -1,0 +1,8 @@
+#!/usr/bin/env sh
+
+# Assumes $PWD is the project root
+
+echo "Installing precommit hook..."
+mkdir -p .git/hooks
+echo "#!/usr/bin/env sh\n\n. ./script/lint" > .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit

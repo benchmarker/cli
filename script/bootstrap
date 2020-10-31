@@ -1,0 +1,23 @@
+#!/usr/bin/env sh
+
+# Based on conventions from https://github.com/github/scripts-to-rule-them-all
+# script/bootstrap: Resolve all dependencies that the application requires to
+#                   run.
+
+set -e
+
+cd "$(dirname "$0")/.."
+
+# If stack is not installed then download and install
+if ! command -v stack &> /dev/null; then
+  echo "Command 'stack' not found. Installing..."
+  curl -sSL https://get.haskellstack.org/ | sh
+fi
+
+stack update
+stack setup
+
+# Setup precommit hook if not in CI
+if [[ -z $CI ]]; then
+    ./script/precommit
+fi
