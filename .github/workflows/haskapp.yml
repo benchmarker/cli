@@ -1,17 +1,181 @@
 name: Haskell CI
 
-on: [push]
+on: [push, repository_dispatch]
+
+env:
+  CI: true
+  GHC_VERSION: 8.8.3
+  CABAL_VERSION: 3.0
 
 jobs:
-  build:
+  debug:
+    name: Debug
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    if: startsWith(github.ref, 'refs/heads/debug')
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          cabal-version: ${{ env.CABAL_VERSION }}
+      - name: Start SSH Session ${{ matrix.os }}
+        if: contains(github.ref, runner.os)
+        uses: luchihoratiu/debug-via-ssh@v1.0
+        with:
+          NGROK_AUTH_TOKEN: ${{ secrets.DEBUG_NGROK_TOKEN }}
+          SSH_PASS: ${{ secrets.DEBUG_SSH_PASSWORD }}
+
+  setup:
+    name: Setup
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-haskell@v1
-      with:
-        ghc-version: '8.6.5'
-        cabal-version: '2.4'
-    - name: Build
-      run: stack build
-    - name: Test
-      run: stack test --coverage
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          cabal-version: ${{ env.CABAL_VERSION }}
+      - uses: actions/cache@v2
+        with:
+          path: |
+            .stack-work
+          key: ${{ runner.os }}-ghc_${{ env.GHC_VERSION }}-cabal_${{ env.CABAL_VERSION }}-${{ github.run_id }}
+      - uses: actions/cache@v2
+        with:
+          path: |
+            .stack-work
+          key: ${{ runner.os }}-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}-ghc_${{ env.GHC_VERSION }}-cabal_${{ env.CABAL_VERSION }}
+      - run: ./script/bootstrap
+
+  analysis:
+    name: Code Analysis
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          cabal-version: ${{ env.CABAL_VERSION }}
+      - uses: actions/cache@v2
+        with:
+          path: |
+            .stack-work
+          key: ${{ runner.os }}-${{ github.run_id }}
+      - name: Lint
+        run: ./script/lint
+
+  build:
+    name: Build & Test
+    needs: setup
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          cabal-version: ${{ env.CABAL_VERSION }}
+      - uses: actions/cache@v2
+        with:
+          path: |
+            .stack-work
+          key: ${{ runner.os }}-${{ github.run_id }}
+          restore-keys: ${{ runner.os }}
+      - name: Build
+        run: |
+          stack install
+      - name: Test
+        run: |
+          stack test --coverage
+      # TODO: upload all build distributables and test results to artifacts
+      # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#uploading-build-and-test-artifacts
+
+  release:
+    name: Release
+    needs: [setup, analysis, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          cabal-version: ${{ env.CABAL_VERSION }}
+      - uses: actions/cache@v2
+        with:
+          path: |
+            .stack-work
+          key: ${{ runner.os }}-${{ github.run_id }}
+      # TODO: download all distributable artifacts from build matrix steps
+      # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
+      - uses: cycjimmy/semantic-release-action@v2
+        with:
+          branch: master
+          dry_run: true
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Publish
+        if: steps.semantic.outputs.new_release_published == 'true'
+        env:
+          HACKAGE_USERNAME: ${{ secrets.HACKAGE_USERNAME }}
+          HACKAGE_PASSWORD: ${{ secrets.HACKAGE_PASSWORD }}
+        run: |
+          # TODO: Set version to be deployed in package.yaml using ${{ steps.semantic.outputs.new_release_version }}
+          stack build
+          stack sdist
+          stack upload
+
+  coverage:
+    name: Coverage
+    needs: [setup, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          cabal-version: ${{ env.CABAL_VERSION }}
+      - uses: actions/cache@v2
+        with:
+          path: |
+            .stack-work
+          key: ${{ runner.os }}-${{ github.run_id }}
+      # TODO: download all test run artifacts from ubuntu build step
+      # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
+      - run: |
+          hpc-codecov \
+          --mix=$(stack path --dist-dir)/hpc \
+          --exclude=Paths_hpc_codecov \
+          -o codecov.json \
+          $(find $(stack path --local-hpc-root) -name 'benchmarker-test.tix')
+      - name: Report
+        env:
+          BRANCH: ${{ needs.setup.outputs.branch }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: bash <(curl -s https://codecov.io/bash)
+
+  benchmark:
+    name: Benchmark
+    needs: [setup, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          cabal-version: ${{ env.CABAL_VERSION }}
+      - uses: actions/cache@v2
+        with:
+          path: |
+            .stack-work
+          key: ${{ runner.os }}-${{ github.run_id }}
+      - run: echo "PATH=$(stack path --local-install-root)/bin:${{ env.PATH }}" >> $GITHUB_ENV
+      - uses: benchmarker/github-action@v1

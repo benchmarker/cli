@@ -11,6 +11,13 @@ packages:
       sha256: b7c3e654ed0789a4c05497af0f7f8b25edf1da3a9f9ec6fe13d3c4a90a1404e5
   original:
     hackage: hlint-3.2.1
+- completed:
+    hackage: hpc-codecov-0.2.0.0@sha256:6328ed7eec763a149a1f50b83c2d8af4e067a0e3c4780f626e37801964f13d41,2618
+    pantry-tree:
+      size: 839
+      sha256: d55a9fc59f4f336192c07489c673f7954c8645285194000fe51a546adb102e34
+  original:
+    hackage: hpc-codecov-0.2.0.0
 snapshots:
 - completed:
     size: 532177

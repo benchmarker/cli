@@ -1,11 +1,13 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
+--
+-- hash: 11e03cff1c73d9abbb6b7370a14f5b03a5d5ae060192c89beb62c3098581919e
 
 name:           benchmarker-cli
-version:        0.0.1
+version:        0.0.0
 description:    Please see the README on GitHub at <https://github.com/benchmarker/cli#readme>
 homepage:       https://github.com/benchmarker/cli#readme
 bug-reports:    https://github.com/benchmarker/cli/issues
