@@ -5,9 +5,6 @@
 #                   run.
 
 set -e
-if ! [ -z $CI ]; then
-  set -o xtrace
-fi
 
 cd "$(dirname "$0")/.."
 
@@ -23,25 +20,25 @@ if ! [ -x "$(command -v stack)" ]; then
   echo "Command 'stack' not found. Installing..."
   curl -sSL https://get.haskellstack.org/ | sh
   stack_setup
-elif [ -z $CI ]; then
-  stack_setup
 fi
 
-# If yq is not installed then download and install
-if ! [ -x "$(command -v yq)" ]; then
-  echo "Command 'yq' not found. Installing..."
-  if [ -x "$(command -v snap)" ]; then
-    sudo snap install yq
-  elif [ -x "$(command -v brew)" ]; then
-    sudo brew install yq
-  else
-    echo "Could not install yq"
-    exit 1
+if [ -z $NO_DEPS ]; then
+  # If yq is not installed then download and install
+  if ! [ -x "$(command -v yq)" ]; then
+    echo "Command 'yq' not found. Installing..."
+    if [ -x "$(command -v snap)" ]; then
+      sudo snap install yq
+    elif [ -x "$(command -v brew)" ]; then
+      sudo brew install yq
+    else
+      echo "Could not install yq"
+      exit 1
+    fi
   fi
+  # Install extra deps
+  echo "Stack install extra deps"
+  yq read stack.yaml 'extra-deps[*]' | xargs stack install
 fi
-# Install extra deps
-echo "Stack install extra deps"
-yq read stack.yaml 'extra-deps[*]' | xargs stack install
 
 # If not in CI
 if [ -z $CI ]; then

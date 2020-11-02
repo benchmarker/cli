@@ -2,8 +2,8 @@
 
 **NOTE:** This package is still a work in progress.
 
-[![Haskell CI](https://github.com/benchmarker/cli/workflows/Haskell%20CI/badge.svg)
-[![Hackage CI](https://matrix.hackage.haskell.org/api/v2/packages/benchmarker-cli/badge)
+[![Haskell CI](https://github.com/benchmarker/cli/workflows/Haskell%20CI/badge.svg)](https://github.com/benchmarker/cli/actions?query=workflow%3A%22Haskell+CI%22)
+[![Hackage CI](https://matrix.hackage.haskell.org/api/v2/packages/benchmarker-cli/badge)](https://hackage.haskell.org/package/benchmarker-cli)
 
 Command line tool for running and publishing benchmarks to a git repository.
 
@@ -68,23 +68,24 @@ $ benchmarker compare --help
 # -e: When this is enabled the exit code returned depends on the failure conditions specified in your config file.
 ```
 
-## Config
+### `commit`
 
-The config file is named `benchmarker.ini` and supports the following options
+Commit benchmark results to repo branch
 
-- **options**: in config file format
-  - command to warm up project before running benchmark command. **defaut**: `null`
-  - named map of benchmark commands. **default**: `{}`
-  - name of benchmark output file.json. **default**: `"result"`.
-  - location of benchmark output. **default**: `"runs/{result_hash}"`.
-  - repo branch to store benchmark output. **default**: `"benchmarks"` (set to `null` to disable)
-  - failure threshold of target branch comparison. **default**: `null`
-  - failure threshold of parent sha comparison. **default**: `null`
-- **init**: create and push orphan branch for benchmarks
-- **compare**: run comparison between two commits
-- **run**: run benchmarks on a commit hash
-- **batch**: repo run benchmarks on a list of commits
-- **publish**: push benchmark results to repo branch
+```sh
+$ benchmarker commit --help
+# TODO: show output
+# -p: When this is enabled the branch is pushed to the remote tracking target.
+```
+
+## Integration
+
+CI Recipes for using this tool.
+
+### [GitHub][github-action]
+
+Easily add this to your GitHub CI worflow.
+See the actions repository for [documentation][github-action].
 
 ## Contributing
 
@@ -121,5 +122,6 @@ This section is automatically generated via tagging the all-contributors bot in 
 [contributing]: ./CONTRIBUTING.md
 [criterion]: https://github.com/bos/criterion
 [git]: https://github.com/git/git
+[github-action]: https://github.com/benchmarker/github-action
 [hackage]: http://hackage.haskell.org/
 [homebrew]: https://brew.sh/

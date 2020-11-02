@@ -4,17 +4,19 @@ on: [push, repository_dispatch]
 
 env:
   CI: true
-  GHC_VERSION: 8.8.3
-  CABAL_VERSION: 3.0
+  GHC_VERSION: 8
+  CABAL_VERSION: 3
+
+# TODO: fix caching
 
 jobs:
   debug:
     name: Debug
+    if: startsWith(github.ref, 'refs/heads/debug')
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    if: startsWith(github.ref, 'refs/heads/debug')
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-haskell@v1
@@ -28,49 +30,18 @@ jobs:
           NGROK_AUTH_TOKEN: ${{ secrets.DEBUG_NGROK_TOKEN }}
           SSH_PASS: ${{ secrets.DEBUG_SSH_PASSWORD }}
 
-  setup:
-    name: Setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-haskell@v1
-        with:
-          ghc-version: ${{ env.GHC_VERSION }}
-          cabal-version: ${{ env.CABAL_VERSION }}
-      - uses: actions/cache@v2
-        with:
-          path: |
-            .stack-work
-          key: ${{ runner.os }}-ghc_${{ env.GHC_VERSION }}-cabal_${{ env.CABAL_VERSION }}-${{ github.run_id }}
-      - uses: actions/cache@v2
-        with:
-          path: |
-            .stack-work
-          key: ${{ runner.os }}-${{ github.run_id }}
-          restore-keys: ${{ runner.os }}-ghc_${{ env.GHC_VERSION }}-cabal_${{ env.CABAL_VERSION }}
-      - run: ./script/bootstrap
-
   analysis:
     name: Code Analysis
-    needs: setup
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-haskell@v1
-        with:
-          ghc-version: ${{ env.GHC_VERSION }}
-          cabal-version: ${{ env.CABAL_VERSION }}
-      - uses: actions/cache@v2
-        with:
-          path: |
-            .stack-work
-          key: ${{ runner.os }}-${{ github.run_id }}
+      - run: brew install hlint
       - name: Lint
         run: ./script/lint
 
   build:
-    name: Build & Test
-    needs: setup
+    name: Build
     strategy:
       matrix:
         os: [macOS-latest, ubuntu-latest, windows-latest]
@@ -81,45 +52,68 @@ jobs:
         with:
           ghc-version: ${{ env.GHC_VERSION }}
           cabal-version: ${{ env.CABAL_VERSION }}
-      - uses: actions/cache@v2
-        with:
-          path: |
-            .stack-work
-          key: ${{ runner.os }}-${{ github.run_id }}
-          restore-keys: ${{ runner.os }}
       - name: Build
+        id: build
+        shell: bash
         run: |
           stack install
+          echo "::set-output name=install-bin-dir::$(stack path --local-install-root)/bin"
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifact-bin-${{ runner.os }}
+          retention-days: 5
+          path: ${{ steps.build.outputs.install-bin-dir }}
       - name: Test
+        id: test
+        shell: bash
         run: |
           stack test --coverage
-      # TODO: upload all build distributables and test results to artifacts
-      # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#uploading-build-and-test-artifacts
+          echo "::set-output name=hpc-mix-dir::$(stack path --dist-dir)/hpc"
+          echo "::set-output name=hpc-tix-file::$(find $(stack path --local-hpc-root) -name 'benchmarker-test.tix')"
+      - name: Upload test artifact (hpc mix)
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-artifact-mix-${{ runner.os }}
+          retention-days: 5
+          path: ${{ steps.test.outputs.hpc-mix-dir }}
+      - name: Upload test artifact (hpc tix)
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-artifact-tix-${{ runner.os }}
+          retention-days: 5
+          path: ${{ steps.test.outputs.hpc-tix-file }}
 
   release:
     name: Release
-    needs: [setup, analysis, build]
+    needs: [analysis, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
       - uses: actions/setup-haskell@v1
+      - name: Download build artifact (Linux)
+        uses: actions/download-artifact@v2
         with:
-          ghc-version: ${{ env.GHC_VERSION }}
-          cabal-version: ${{ env.CABAL_VERSION }}
-      - uses: actions/cache@v2
+          name: build-artifact-bin-Linux
+          path: ./dist/linux
+      - name: Download build artifact (macOS)
+        uses: actions/download-artifact@v2
         with:
-          path: |
-            .stack-work
-          key: ${{ runner.os }}-${{ github.run_id }}
-      # TODO: download all distributable artifacts from build matrix steps
-      # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
+          name: build-artifact-bin-macOS
+          path: ./dist/macOS
+      - name: Download build artifact (Windows)
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifact-bin-Windows
+          path: ./dist/windows
       - uses: cycjimmy/semantic-release-action@v2
         with:
-          branch: master
+          branch: main
           dry_run: true
           extra_plugins: |
             @semantic-release/changelog
             @semantic-release/git
+            @semantic-release/github
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
       - name: Publish
@@ -135,7 +129,7 @@ jobs:
 
   coverage:
     name: Coverage
-    needs: [setup, build]
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -143,28 +137,27 @@ jobs:
         with:
           ghc-version: ${{ env.GHC_VERSION }}
           cabal-version: ${{ env.CABAL_VERSION }}
-      - uses: actions/cache@v2
+      - name: Download test artifact (hpc mix)
+        uses: actions/download-artifact@v2
         with:
-          path: |
-            .stack-work
-          key: ${{ runner.os }}-${{ github.run_id }}
-      # TODO: download all test run artifacts from ubuntu build step
-      # https://docs.github.com/en/free-pro-team@latest/actions/guides/storing-workflow-data-as-artifacts#downloading-or-deleting-artifacts
-      - run: |
-          hpc-codecov \
-          --mix=$(stack path --dist-dir)/hpc \
-          --exclude=Paths_hpc_codecov \
-          -o codecov.json \
-          $(find $(stack path --local-hpc-root) -name 'benchmarker-test.tix')
+          name: test-artifact-mix-${{ runner.os }}
+          path: ./artifacts
+      - name: Download test artifact (hpc tix)
+        uses: actions/download-artifact@v2
+        with:
+          name: test-artifact-tix-${{ runner.os }}
+          path: ./artifacts
+      - run: stack install hpc-codecov
+      - run: stack exec hpc-codecov -- --mix=./artifacts --exclude=Paths_hpc_codecov -o codecov.json ./artifacts/benchmarker-test.tix
       - name: Report
         env:
-          BRANCH: ${{ needs.setup.outputs.branch }}
+          BRANCH: ${{ github.ref }}
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: bash <(curl -s https://codecov.io/bash)
 
   benchmark:
     name: Benchmark
-    needs: [setup, build]
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -172,10 +165,6 @@ jobs:
         with:
           ghc-version: ${{ env.GHC_VERSION }}
           cabal-version: ${{ env.CABAL_VERSION }}
-      - uses: actions/cache@v2
-        with:
-          path: |
-            .stack-work
-          key: ${{ runner.os }}-${{ github.run_id }}
+      - run: stack install
       - run: echo "PATH=$(stack path --local-install-root)/bin:${{ env.PATH }}" >> $GITHUB_ENV
       - uses: benchmarker/github-action@v1
