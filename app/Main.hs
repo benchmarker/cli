@@ -1,31 +1,34 @@
-#!/usr/bin/env stack exec ghci -- -i.stack-work/dist/x86_64-osx/Cabal-3.0.1.0/build/benchmarker/autogen
--- stack --resolver lts-10.2 script
+#!/usr/bin/env stack
+-- stack --resolver lts-10.2 script --ghc-options -i.stack-work/dist/x86_64-osx/Cabal-3.0.1.0/build/benchmarker/autogen
 
 {-# LANGUAGE OverloadedStrings #-}
 
 import qualified Data.Text
 import qualified Data.Version
-import Options.Applicative (Parser, flag', help, long)
-import qualified Paths_benchmarker_cli (version)
-import qualified Turtle
+import Turtle (s, (%), printf, (<$>), (<>),  Alternative((<|>)), options, Parser, Text )
+import Options.Applicative (subparser, command, flag', help, info, long, progDesc)
+import qualified Paths_benchmarker_cli
 
 data Command
   = Version
-  --   | Init InitOptions
-  --   | Run RunOptions
-  --   | Compare CompareOptions
-  --   | Commit CommitOptions
+  -- | Init InitOptions
+  -- | Run RunOptions
+  -- | Compare CompareOptions
+  -- | Commit CommitOptions
   deriving (Show)
-
-parser :: Parser Command
-parser = Main.Version <$ flag' () (long "version" <> help "Version number")
-
--- <> subparser (command "init" (info addOptions ( progDesc "Initialise repository for benchmarking" )))
 
 version :: Turtle.Text
 version = Data.Text.pack (Data.Version.showVersion Paths_benchmarker_cli.version)
 
+initOptions :: Parser Command
+initOptions = error "not implemented"
+
+parser :: Parser Command
+parser =
+  Main.Version <$ flag' () (long "version" <> help "Version number")
+    <|> subparser (command "init" (info initOptions (progDesc "Initialise repository for benchmarking")))
+
 main :: IO ()
 main = do
   x <- Turtle.options "Command line tool for running and publishing benchmarks to a git repository." parser
-  Turtle.printf Turtle.s version
+  print x
