@@ -5,6 +5,7 @@ license:             BSD3
 author:              "@iamogbz"
 maintainer:          "iamogbz+benchmarker@gmail.com"
 copyright:           "2020 @iamogbz"
+category:            System, CLI
 
 extra-source-files:
 - README.md
@@ -21,6 +22,10 @@ description:         Please see the README on GitHub at <https://github.com/benc
 
 dependencies:
 - base >= 4.7 && < 5
+- criterion
+- optparse-applicative
+- text
+- turtle
 
 library:
   source-dirs: src

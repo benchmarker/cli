@@ -43,8 +43,6 @@ extra-deps:
   - hlint-3.2.1
   - hpc-codecov-0.2.0.0
 
-allow-newer: true
-
 # Override default flag values for local packages and extra-deps
 # flags: {}
 

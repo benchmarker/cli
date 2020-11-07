@@ -91,7 +91,7 @@ See the actions repository for [documentation][github-action].
 
 Feel free to open a PR or GitHub issue. Contributions welcome!
 
-To develop locally, clone this repository and run . script/bootstrap to install test dependencies. You can then use invoke --list to see available commands.
+To develop locally, clone this repository and run . script/bootstrap to setup dependencies.
 
 See contributing [guide][contributing].
 

@@ -1,6 +1,6 @@
 module Lib
-    ( someFunc
+    ( launch
     ) where
 
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+launch :: IO ()
+launch = putStrLn "launch"
