@@ -10,7 +10,10 @@ import Turtle (options)
 
 main :: IO ()
 main = do
-  commandOptions <- options "Command line tool for running and publishing benchmarks to a git repository." parser
+  commandOptions <-
+    options
+      "Command line tool for running and publishing benchmarks to a git repository."
+      parser
   -- TODO: Load config from file
   -- TODO: Overwrite config with command options
   -- TODO: Run command with overwritten config
