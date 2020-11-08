@@ -3,32 +3,106 @@
 
 {-# LANGUAGE OverloadedStrings #-}
 
+import Data.Semigroup ((<>))
 import qualified Data.Text
 import qualified Data.Version
-import Turtle (s, (%), printf, (<$>), (<>),  Alternative((<|>)), options, Parser, Text )
-import Options.Applicative (subparser, command, flag', help, info, long, progDesc)
-import qualified Paths_benchmarker_cli
+import Options.Applicative
+  ( Parser,
+    auto,
+    command,
+    flag,
+    flag',
+    help,
+    info,
+    long,
+    many,
+    option,
+    progDesc,
+    short,
+    showDefault,
+    strOption,
+    subparser,
+    value,
+    (<$>),
+    (<*>),
+    (<|>),
+  )
+import qualified Paths_benchmarker_cli (version)
+import Turtle (options, printf, s, (%))
+
+defaultResultBranch = "benchmarks"
+
+defaultResultName = "result"
+
+defaultFolderPath = "run/{run_id}"
+
+data Verbosity = Terse | Normal | Verbose deriving (Show)
+
+instance Read Verbosity where
+  readsPrec _ v = (: []) (intoVerbosity $ read v, "")
+
+newtype BaseOptions = BaseOptions {verbosity :: Verbosity} deriving (Show)
+
+data InitOptions = InitOptions
+  { base :: BaseOptions,
+    folderPath :: String,
+    resultBranch :: String
+  }
+  deriving (Show)
 
 data Command
   = Version
-  -- | Init InitOptions
-  -- | Run RunOptions
-  -- | Compare CompareOptions
-  -- | Commit CommitOptions
+  | Init InitOptions
   deriving (Show)
 
-version :: Turtle.Text
-version = Data.Text.pack (Data.Version.showVersion Paths_benchmarker_cli.version)
+intoVerbosity :: Int -> Verbosity
+intoVerbosity n
+  | n < 1 = Terse
+  | n == 1 = Normal
+  | otherwise = Verbose
 
-initOptions :: Parser Command
-initOptions = error "not implemented"
+cliVersion :: Data.Text.Text
+cliVersion = Data.Text.pack (Data.Version.showVersion Paths_benchmarker_cli.version)
+
+parserBaseOptions :: Parser BaseOptions
+parserBaseOptions =
+  BaseOptions . intoVerbosity . length
+    <$> many
+      ( flag'
+          ()
+          ( long "verbosity"
+              <> short 'v'
+              <> help "Level of verbosity used for the command output"
+          )
+      )
+
+parserInitOptions :: Parser InitOptions
+parserInitOptions =
+  InitOptions <$> parserBaseOptions
+    <*> strOption
+      ( long "folderPath"
+          <> short 'd'
+          <> help "Folder path to the benchmark result file"
+          <> showDefault
+          <> value defaultFolderPath
+      )
+    <*> strOption
+      ( long "resultBranch"
+          <> short 'b'
+          <> help "The repository branch that the results will be stored on"
+          <> showDefault
+          <> value defaultResultBranch
+      )
+
+parserInit :: Parser Command
+parserInit = Init <$> parserInitOptions
 
 parser :: Parser Command
 parser =
-  Main.Version <$ flag' () (long "version" <> help "Version number")
-    <|> subparser (command "init" (info initOptions (progDesc "Initialise repository for benchmarking")))
+  Version <$ flag' () (long "version" <> help "Version number")
+    <|> subparser (command "init" (info parserInit (progDesc "Initialise repository for benchmarking")))
 
 main :: IO ()
 main = do
-  x <- Turtle.options "Command line tool for running and publishing benchmarks to a git repository." parser
+  x <- options "Command line tool for running and publishing benchmarks to a git repository." parser
   print x
