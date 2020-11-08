@@ -1,5 +1,5 @@
 #!/usr/bin/env stack
--- stack --resolver lts-10.2 script --ghc-options -isrc:.stack-work/dist/x86_64-osx/Cabal-3.0.1.0/build/benchmarker/autogen
+-- stack --resolver lts-16.20 script --package optparse-applicative,text,turtle --ghc-options -isrc:.stack-work/dist/x86_64-osx/Cabal-3.0.1.0/build/benchmarker/autogen
 
 {-# LANGUAGE OverloadedStrings #-}
 

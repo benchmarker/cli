@@ -1,5 +1,11 @@
-#!/usr/bin/env sh
+#!/usr/bin/env stack
+-- stack --resolver lts-16.20 script --package turtle
 
-# Assumes $PWD is the project root
+{-# LANGUAGE OverloadedStrings #-}
 
-stack exec hlint src test
+import Turtle
+
+-- Assumes current directory is the project root
+
+main :: IO ExitCode
+main = proc "stack" ["exec", "hlint", "src", "test"] empty
