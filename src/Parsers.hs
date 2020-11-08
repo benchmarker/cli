@@ -31,8 +31,7 @@ parserBaseOptions =
     <$> many
       ( flag'
           ()
-          ( long "verbosity"
-              <> short 'v'
+          ( short 'v'
               <> help "Level of verbosity used for the command output e.g. -vv"
           )
       )
@@ -63,4 +62,11 @@ parserInit = Init <$> parserInitOptions
 parser :: Parser Command
 parser =
   Version <$ flag' () (long "version" <> help "Version number")
-    <|> subparser (command "init" (info (parserInit <**> helper) (progDesc "Initialise repository for benchmarking")))
+    <|> subparser
+      ( command
+          "init"
+          ( info
+              (parserInit <**> helper)
+              (progDesc "Initialise repository for benchmarking")
+          )
+      )

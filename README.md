@@ -44,7 +44,20 @@ Assumes this is running from an initialised git repository.
 
 ```sh
 $ benchmarker init --help
-# TODO: show output
+Usage: benchmarker init [-v|--verbosity] [-d|--folderPath FOLDER_PATH]
+                        [-b|--resultBranch REPO_BRANCH]
+  Initialise repository for benchmarking
+
+Available options:
+  -v,--verbosity           Level of verbosity used for the command output e.g.
+                           -vv
+  -d,--folderPath FOLDER_PATH
+                           Folder path to the benchmark result
+                           file (default: "run/{run_id}")
+  -b,--resultBranch REPO_BRANCH
+                           The repository branch that the results will be stored
+                           on (default: "benchmarks")
+  -h,--help                Show this help text
 ```
 
 ### `run`
