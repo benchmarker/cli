@@ -8,15 +8,18 @@ import Options.Applicative
     command,
     flag',
     help,
+    helper,
     info,
     long,
     many,
+    metavar,
     progDesc,
     short,
     showDefault,
     strOption,
     subparser,
     value,
+    (<**>),
     (<|>),
   )
 import Types
@@ -30,7 +33,7 @@ parserBaseOptions =
           ()
           ( long "verbosity"
               <> short 'v'
-              <> help "Level of verbosity used for the command output"
+              <> help "Level of verbosity used for the command output e.g. -vv"
           )
       )
 
@@ -40,16 +43,18 @@ parserInitOptions =
     <*> strOption
       ( long "folderPath"
           <> short 'd'
+          <> metavar "FOLDER_PATH"
           <> help "Folder path to the benchmark result file"
-          <> showDefault
           <> value Constants.defaultFolderPath
+          <> showDefault
       )
     <*> strOption
       ( long "resultBranch"
           <> short 'b'
+          <> metavar "REPO_BRANCH"
           <> help "The repository branch that the results will be stored on"
-          <> showDefault
           <> value Constants.defaultResultBranch
+          <> showDefault
       )
 
 parserInit :: Parser Command
@@ -58,4 +63,4 @@ parserInit = Init <$> parserInitOptions
 parser :: Parser Command
 parser =
   Version <$ flag' () (long "version" <> help "Version number")
-    <|> subparser (command "init" (info parserInit (progDesc "Initialise repository for benchmarking")))
+    <|> subparser (command "init" (info (parserInit <**> helper) (progDesc "Initialise repository for benchmarking")))

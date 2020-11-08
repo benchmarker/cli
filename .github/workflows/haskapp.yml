@@ -167,4 +167,5 @@ jobs:
           cabal-version: ${{ env.CABAL_VERSION }}
       - run: stack install
       - run: echo "PATH=$(stack path --local-install-root)/bin:${{ env.PATH }}" >> $GITHUB_ENV
-      - uses: benchmarker/github-action@v1
+      # TODO: Use benchmarker github action to profile this distributable
+      # - uses: benchmarker/github-action@v1
