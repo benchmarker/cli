@@ -56,10 +56,10 @@ parserInitOptions =
           <> showDefault
       )
 
-parserInit :: Parser CommandOptions
+parserInit :: Parser Command
 parserInit = Init <$> parserInitOptions
 
-parser :: Parser CommandOptions
+parser :: Parser Command
 parser =
   Version <$ flag' () (long "version" <> help "Version number")
     <|> subparser

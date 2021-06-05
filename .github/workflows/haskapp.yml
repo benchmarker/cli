@@ -1,6 +1,6 @@
 name: Haskell CI
 
-on: [push, repository_dispatch]
+on: [push, repository_dispatch, workflow_dispatch]
 
 env:
   CI: true

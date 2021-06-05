@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6b55c49c11e31ace0d23e577fc4923f5ab3f290ac06491a8f8987ede67b3f09d
+-- hash: 888f3d07b1c8a7534e99f59be478b4be3ceb0ba5d66feefa0d8510d2c55b618b
 
 name:           benchmarker-cli
 version:        0.0.0
@@ -28,7 +28,6 @@ source-repository head
 
 library
   exposed-modules:
-      Config
       Constants
       Parsers
       Types
