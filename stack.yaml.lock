@@ -18,6 +18,13 @@ packages:
       sha256: d55a9fc59f4f336192c07489c673f7954c8645285194000fe51a546adb102e34
   original:
     hackage: hpc-codecov-0.2.0.0
+- completed:
+    hackage: tini-0.1.0.1@sha256:2bb0cbb42c6e45ba3cf94b83b5c37bea019fb21d4f2ecd42b834f2d022b27af2,1923
+    pantry-tree:
+      size: 742
+      sha256: 21d237f415105f50c233959dcbe9e8013acf7130e8a8f23cd769c0df7d094d5f
+  original:
+    hackage: tini-0.1.0.1
 snapshots:
 - completed:
     size: 532177
