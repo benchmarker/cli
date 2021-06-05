@@ -37,7 +37,7 @@ if [ -z $NO_DEPS ]; then
   fi
   # Install extra deps
   echo "Stack install extra deps"
-  yq read stack.yaml 'extra-deps[*]' | xargs stack install
+  yq eval '.extra-deps[]' stack.yaml | xargs stack install
 fi
 
 # If not in CI
