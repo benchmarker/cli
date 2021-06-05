@@ -16,7 +16,17 @@ This project and everyone participating in it is governed by our [Code of Conduc
 
 ## Get Started
 
+Install dependencies and run tests.
+
 ```sh
-make setup
+./script/bootstrap
 stack test
+```
+
+## Development
+
+You can run the application as a script.
+
+```sh
+app/Main.hs --help
 ```

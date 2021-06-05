@@ -1,8 +1,16 @@
-#!/usr/bin/env sh
+#!/usr/bin/env stack
+-- stack --resolver lts-16.20 script --package turtle
 
-# Assumes $PWD is the project root
+{-# LANGUAGE OverloadedStrings #-}
 
-echo "Installing precommit hook..."
-mkdir -p .git/hooks
-echo "#!/usr/bin/env sh\n\n. ./script/lint" > .git/hooks/pre-commit
-chmod +x .git/hooks/pre-commit
+import Turtle
+
+-- Assumes current directory is the project root
+
+main :: IO ()
+main = do
+  let precommitHookFile = fromText ".git/hooks/pre-commit"
+  mktree (directory precommitHookFile)
+  writeTextFile precommitHookFile "#!/usr/bin/env sh\n\n./script/lint"
+  chmod executable precommitHookFile
+  echo "Installed precommit hook."

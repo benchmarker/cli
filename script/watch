@@ -1,5 +1,12 @@
-#!/usr/bin/env sh
+#!/usr/bin/env stack
+-- stack --resolver lts-16.20 script --package process,turtle
 
-# Assumes $PWD is the project root
+{-# LANGUAGE OverloadedStrings #-}
 
-stack build --file-watch
+import System.Process
+import Turtle
+
+-- Assumes current directory is the project root
+
+main :: IO ()
+main = liftIO $ callProcess "stack" ["build", "--file-watch"]

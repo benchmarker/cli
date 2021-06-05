@@ -1,17 +1,171 @@
 name: Haskell CI
 
-on: [push]
+on: [push, repository_dispatch, workflow_dispatch]
+
+env:
+  CI: true
+  GHC_VERSION: 8
+  CABAL_VERSION: 3
+
+# TODO: fix caching
 
 jobs:
-  build:
+  debug:
+    name: Debug
+    if: startsWith(github.ref, 'refs/heads/debug')
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          cabal-version: ${{ env.CABAL_VERSION }}
+      - name: Start SSH Session ${{ matrix.os }}
+        if: contains(github.ref, runner.os)
+        uses: luchihoratiu/debug-via-ssh@v1.0
+        with:
+          NGROK_AUTH_TOKEN: ${{ secrets.DEBUG_NGROK_TOKEN }}
+          SSH_PASS: ${{ secrets.DEBUG_SSH_PASSWORD }}
+
+  analysis:
+    name: Code Analysis
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-haskell@v1
-      with:
-        ghc-version: '8.6.5'
-        cabal-version: '2.4'
-    - name: Build
-      run: stack build
-    - name: Test
-      run: stack test --coverage
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+      - run: brew install hlint
+      - name: Lint
+        run: ./script/lint
+
+  build:
+    name: Build
+    strategy:
+      matrix:
+        os: [macOS-latest, ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          cabal-version: ${{ env.CABAL_VERSION }}
+      - name: Build
+        id: build
+        shell: bash
+        run: |
+          stack install
+          echo "::set-output name=install-bin-dir::$(stack path --local-install-root)/bin"
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-artifact-bin-${{ runner.os }}
+          retention-days: 5
+          path: ${{ steps.build.outputs.install-bin-dir }}
+      - name: Test
+        id: test
+        shell: bash
+        run: |
+          stack test --coverage
+          echo "::set-output name=hpc-mix-dir::$(stack path --dist-dir)/hpc"
+          echo "::set-output name=hpc-tix-file::$(find $(stack path --local-hpc-root) -name 'benchmarker-test.tix')"
+      - name: Upload test artifact (hpc mix)
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-artifact-mix-${{ runner.os }}
+          retention-days: 5
+          path: ${{ steps.test.outputs.hpc-mix-dir }}
+      - name: Upload test artifact (hpc tix)
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-artifact-tix-${{ runner.os }}
+          retention-days: 5
+          path: ${{ steps.test.outputs.hpc-tix-file }}
+
+  release:
+    name: Release
+    needs: [analysis, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-haskell@v1
+      - name: Download build artifact (Linux)
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifact-bin-Linux
+          path: ./dist/linux
+      - name: Download build artifact (macOS)
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifact-bin-macOS
+          path: ./dist/macOS
+      - name: Download build artifact (Windows)
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifact-bin-Windows
+          path: ./dist/windows
+      - uses: cycjimmy/semantic-release-action@v2
+        with:
+          branch: main
+          dry_run: true
+          extra_plugins: |
+            @semantic-release/changelog
+            @semantic-release/git
+            @semantic-release/github
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Publish
+        if: steps.semantic.outputs.new_release_published == 'true'
+        env:
+          HACKAGE_USERNAME: ${{ secrets.HACKAGE_USERNAME }}
+          HACKAGE_PASSWORD: ${{ secrets.HACKAGE_PASSWORD }}
+        run: |
+          # TODO: Set version to be deployed in package.yaml using ${{ steps.semantic.outputs.new_release_version }}
+          stack build
+          stack sdist
+          stack upload
+
+  coverage:
+    name: Coverage
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          cabal-version: ${{ env.CABAL_VERSION }}
+      - name: Download test artifact (hpc mix)
+        uses: actions/download-artifact@v2
+        with:
+          name: test-artifact-mix-${{ runner.os }}
+          path: ./artifacts
+      - name: Download test artifact (hpc tix)
+        uses: actions/download-artifact@v2
+        with:
+          name: test-artifact-tix-${{ runner.os }}
+          path: ./artifacts
+      - run: stack install hpc-codecov
+      - run: stack exec hpc-codecov -- --mix=./artifacts --exclude=Paths_hpc_codecov -o codecov.json ./artifacts/benchmarker-test.tix
+      - name: Report
+        env:
+          BRANCH: ${{ github.ref }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: bash <(curl -s https://codecov.io/bash)
+
+  benchmark:
+    name: Benchmark
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-haskell@v1
+        with:
+          ghc-version: ${{ env.GHC_VERSION }}
+          cabal-version: ${{ env.CABAL_VERSION }}
+      - run: stack install
+      - run: echo "PATH=$(stack path --local-install-root)/bin:${{ env.PATH }}" >> $GITHUB_ENV
+      # TODO: Use benchmarker github action to profile this distributable
+      # - uses: benchmarker/github-action@v1
