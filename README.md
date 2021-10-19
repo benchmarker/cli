@@ -20,7 +20,7 @@ It uses [criterion][criterion] under the hood for performance analysis heavy lif
 ### [Homebrew][homebrew]
 
 ```sh
-brew install benchmarker/ed/cli
+brew install benchmarker/s/cli
 ```
 
 ### [Hackage][hackage]
