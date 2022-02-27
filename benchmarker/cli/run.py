@@ -28,7 +28,7 @@ def parse_args(args: "Sequence[str]") -> "Tuple[argparse.Namespace, List[str]]":
     """
     parser = argparse.ArgumentParser(
         description="Run benchmarker",
-        add_help=False,
+        add_help=True,
     )
     parser.add_argument(
         "cmd",

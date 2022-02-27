@@ -1,8 +1,11 @@
+import argparse
 import os
 from asyncio import subprocess
 from configparser import ConfigParser
 from typing import (
+    List,
     Sequence,
+    Tuple,
     Union,
 )
 
@@ -17,12 +20,35 @@ __all__ = ["main"]
 
 def main(args: Sequence[str], config: "Union[ConfigParser, None]") -> None:
     """Initialise the branch in the repo the benchmark results are pushed to"""
-    result_branch = get_result_branch(config)
+    print("args", args)
+    parsed_args, _ = parse_args(args)
+    print(parsed_args, _)
+    result_branch = parsed_args.branch or get_result_branch(config)
     if result_branch:
         create_orphan_branch(result_branch)
     else:
         msg.print_no_result_branch()
         err.exit_with_code(err.ErrorCode.NO_RESULT_BRANCH)
+
+
+def parse_args(args: "Sequence[str]") -> "Tuple[argparse.Namespace, List[str]]":
+    """
+    Parse the arguments used to execute the init command
+    :return: parsed and unknown arguments
+    """
+    parser = argparse.ArgumentParser(
+        description="Init benchmarker branch",
+        add_help=True,
+    )
+    parser.add_argument(
+        "-b",
+        dest="branch",
+        type=str,
+        help="The branch create. Overrides config file",
+        required=False
+    )
+
+    return parser.parse_known_args(args)
 
 
 def get_result_branch(config: "Union[ConfigParser, None]") -> "Union[str, None]":
