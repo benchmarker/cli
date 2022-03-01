@@ -17,7 +17,10 @@ def main(version_number: str = __version__) -> None:
     """Run main benchmarker logic"""
     msg.print_running_version(version_number)
     parsed_args, unknown_args = parse_args(sys.argv[1:])
-    command = commands.Command(parsed_args.cmd)
+    try:
+        command = commands.Command(parsed_args.cmd)
+    except ValueError as e:
+        raise SystemExit(e) from e
     commands.main(command, unknown_args)
 
 
@@ -28,13 +31,13 @@ def parse_args(args: "Sequence[str]") -> "Tuple[argparse.Namespace, List[str]]":
     """
     parser = argparse.ArgumentParser(
         description="Run benchmarker",
-        add_help=True,
+        add_help=False,
     )
     parser.add_argument(
         "cmd",
         metavar="command",
         type=str,
-        help="The command to be run",
+        help="The command to be run e.g. init",
     )
 
     return parser.parse_known_args(args)

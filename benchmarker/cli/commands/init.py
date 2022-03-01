@@ -44,8 +44,8 @@ def parse_args(args: "Sequence[str]") -> "Tuple[argparse.Namespace, List[str]]":
         "-b",
         dest="branch",
         type=str,
-        help="The branch create. Overrides config file",
-        required=False
+        help="The branch to be created. Overrides config file.",
+        required=False,
     )
 
     return parser.parse_known_args(args)
