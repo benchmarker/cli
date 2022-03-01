@@ -17,7 +17,7 @@ LINT_COMMANDS = {
 def run_lint(ctx, section, fix):
     """Run single lint command"""
     print(f"\033[1m[{section}]\033[0m")
-    ctx_run(ctx, f"poetry run python -m {LINT_COMMANDS[section](fix)}")
+    ctx_run(ctx, f"poetry run {LINT_COMMANDS[section](fix)}")
 
 
 @task(default=True)

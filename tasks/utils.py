@@ -18,7 +18,7 @@ def ctx_run(ctx: "Context", *args: str, **kwargs: str):
     kwargs["pty"] = os.name == "posix"
     poetry_bin_path = get_poetry_bin_path(load_env_file())
     path = ENV_PATH_DELIMITER.join(filter(bool, [poetry_bin_path, *get_current_path()]))
-    with env_context(PATH=path):
+    with env_context(PATH=path, SETUPTOOLS_USE_DISTUTILS="stdlib"):
         return ctx.run(*args, **kwargs)
 
 
