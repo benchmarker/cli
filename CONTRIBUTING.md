@@ -29,7 +29,7 @@ inv deps.add [packages] [--dev]
 Run development version commands.
 
 ```sh
-inv run 'init --help'
+inv dev 'init --help'
 ```
 
 ## Resources
