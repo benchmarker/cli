@@ -15,15 +15,6 @@ from .env import (
     is_verbose_logging,
 )
 
-__all__ = [
-    "print_env_var_missing",
-    "print_running_version",
-    "print_no_config_file",
-    "print_no_result_branch",
-    "print_process_interrupted",
-    "print_unable_to_run",
-]
-
 
 def print_env_var_missing(env_var: "EnvironmentVariable") -> None:
     """Print message for missing environment variable"""
@@ -39,20 +30,28 @@ def print_no_config_file(config_file: str) -> None:
     _print(f"No benchmarker config loaded from '{config_file}'")
 
 
+def print_no_github_token() -> None:
+    _print("No github token found available for use")
+
+
+def print_no_github_user_repo() -> None:
+    _print("No github user/repo found available for use")
+
+
 def print_no_result_branch() -> None:
     _print("No result branch could be loaded from config")
 
 
-def print_no_initial_branch() -> None:
-    _print("No branch found. Please confirm this is running from a git repo")
+def print_result_branch_not_found(branch: str, repo: str) -> None:
+    _print(f"Branch '{branch}' not found in repository '{repo}'", level=MessageLevel.QUIET)
 
 
-def print_orphan_initial_branch(branch: str) -> None:
-    _print(f"Create orphan from initial branch: {branch}", level=MessageLevel.QUIET)
+def print_result_branch_exists(branch: str, repo: str) -> None:
+    _print(f"Branch '{branch}' exists in repository '{repo}'")
 
 
-def print_create_orphan_branch(branch: str) -> None:
-    _print(f"Create orphan branch with name: {branch}", level=MessageLevel.QUIET)
+def print_create_orphan_branch(branch: str, repo: str) -> None:
+    _print(f"Creating branch '{branch}' in repository '{repo}'")
 
 
 def print_process_interrupted(exc: "KeyboardInterrupt") -> None:

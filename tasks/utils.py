@@ -4,7 +4,7 @@ from typing import (
     Dict,
     Iterator,
     List,
-    Union,
+    Optional,
 )
 
 from invoke import Context
@@ -16,15 +16,16 @@ ENV_PATH_DELIMITER = ":"
 def ctx_run(ctx: "Context", *args: str, **kwargs: str):
     """Wraps context run as posix systems"""
     kwargs["pty"] = os.name == "posix"
-    poetry_bin_path = get_poetry_bin_path(load_env_file())
+    env = load_env_file()
+    poetry_bin_path = get_poetry_bin_path(env)
     path = ENV_PATH_DELIMITER.join(filter(bool, [poetry_bin_path, *get_current_path()]))
-    with env_context(PATH=path, SETUPTOOLS_USE_DISTUTILS="stdlib"):
+    with env_context(**env, PATH=path):
         return ctx.run(*args, **kwargs)
 
 
-def get_poetry_bin_path(env_file: "Dict[str, str]") -> "Union[str, None]":
+def get_poetry_bin_path(env: "Dict[str, str]") -> "Optional[str]":
     """Get poetry bin path from environment variables"""
-    poetry_home = env_file.get("POETRY_HOME")
+    poetry_home = env.get("POETRY_HOME")
     return poetry_home and f"{poetry_home}/bin"
 
 

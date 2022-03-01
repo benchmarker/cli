@@ -16,9 +16,9 @@ __all__ = ["main"]
 def main(version_number: str = __version__) -> None:
     """Run main benchmarker logic"""
     msg.print_running_version(version_number)
-    parsed_args, unknown_args = parse_args(sys.argv[1:])
+    known_args, unknown_args = parse_args(sys.argv[1:])
     try:
-        command = commands.Command(parsed_args.cmd)
+        command = commands.Command(known_args.cmd)
     except ValueError as e:
         raise SystemExit(e) from e
     commands.main(command, unknown_args)

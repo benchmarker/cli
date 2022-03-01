@@ -6,6 +6,7 @@ from enum import Enum
 from typing import (
     Dict,
     Generator,
+    Optional,
 )
 
 __all__ = ["is_verbose_logging", "process_env"]
@@ -21,6 +22,18 @@ def get_config_file_path() -> str:
     env_config_file = _get_env_var(EnvironmentVariable.CONFIG)
     default_config_file = os.path.realpath(DEFAULT_CONFIG_FILE)
     return str(env_config_file or default_config_file)
+
+
+def get_gh_token() -> Optional[str]:
+    """Get the github token from environment variable"""
+    gh_token = _get_env_var(EnvironmentVariable.GH_TOKEN)
+    return str(gh_token) if gh_token else None
+
+
+def get_gh_user_repo() -> Optional[str]:
+    """Get the github user/repo from environment variable"""
+    gh_user_repo = _get_env_var(EnvironmentVariable.GH_USER_REPO)
+    return str(gh_user_repo) if gh_user_repo else None
 
 
 def _get_env_var(
@@ -40,7 +53,7 @@ DEFAULT_CONFIG_FILE = "benchmarker.ini"
 
 
 @contextmanager
-def process_env(env_vars: "Dict[str, str]") -> Generator[None, None, None]:
+def process_env(env_vars: "Dict[str, str]") -> "Generator[None, None, None]":
     """Run code with specific enviroment variables that are reset afterwards"""
     prev_env_vars = {**os.environ}
     _set_envs(env_vars)
@@ -58,11 +71,13 @@ class EnvironmentVariable(Enum):
 
     CONFIG = "BENCHMARKER_CONFIG"
     VERBOSE = "BENCHMARKER_VERBOSE"
+    GH_TOKEN = "GITHUB_TOKEN"
+    GH_USER_REPO = "GITHUB_REPO"
 
 
 class MissingEnvironmentVariableError(Exception):
     """Error for missing environment variable"""
 
-    def __init__(self, env_var: EnvironmentVariable):
+    def __init__(self, env_var: "EnvironmentVariable"):
         super().__init__()
         self.env_var = env_var

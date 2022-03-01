@@ -1,34 +1,52 @@
 import argparse
-import os
-from asyncio import subprocess
 from configparser import ConfigParser
 from typing import (
     List,
+    Optional,
     Sequence,
     Tuple,
-    Union,
+)
+
+from github import (
+    Github,
+    GithubException,
 )
 
 from benchmarker.cli.utils import (
+    env,
     err,
+    gh,
     msg,
-    process,
 )
 
 __all__ = ["main"]
 
 
-def main(args: Sequence[str], config: "Union[ConfigParser, None]") -> None:
+def main(args: Sequence[str], config: "Optional[ConfigParser]") -> None:
     """Initialise the branch in the repo the benchmark results are pushed to"""
-    print("args", args)
-    parsed_args, _ = parse_args(args)
-    print(parsed_args, _)
-    result_branch = parsed_args.branch or get_result_branch(config)
-    if result_branch:
-        create_orphan_branch(result_branch)
-    else:
+    known_args, _ = parse_args(args)
+    gh_token = known_args.gh_token or env.get_gh_token()
+    user_repo = known_args.user_repo or env.get_gh_user_repo()
+    result_branch = known_args.branch or get_result_branch(config)
+    if not gh_token:
+        msg.print_no_github_token()
+        err.exit_with_code(err.ErrorCode.NO_GITHUB_TOKEN)
+    elif not user_repo:
+        msg.print_no_github_user_repo()
+        err.exit_with_code(err.ErrorCode.NO_GITHUB_USER_REPO)
+    elif not result_branch:
         msg.print_no_result_branch()
         err.exit_with_code(err.ErrorCode.NO_RESULT_BRANCH)
+
+    try:
+        gh.create_orphan_branch(
+            Github(str(gh_token)),
+            str(user_repo),
+            str(result_branch),
+            known_args.fail_existing,
+        )
+    except GithubException as e:
+        raise SystemExit(e) from e
 
 
 def parse_args(args: "Sequence[str]") -> "Tuple[argparse.Namespace, List[str]]":
@@ -42,54 +60,41 @@ def parse_args(args: "Sequence[str]") -> "Tuple[argparse.Namespace, List[str]]":
     )
     parser.add_argument(
         "-b",
+        "--branch",
         dest="branch",
         type=str,
-        help="The branch to be created. Overrides config file.",
+        help="The branch to be created.\nOverrides config file.",
+        required=False,
+    )
+    parser.add_argument(
+        "-r",
+        "--repo",
+        dest="user_repo",
+        type=str,
+        help="""The github {user}/{repo} to be used.
+Overrides environment variable $GITHUB_REPO.""",
+        required=False,
+    )
+    parser.add_argument(
+        "-t",
+        "--token",
+        dest="gh_token",
+        type=str,
+        help="""The github {token} to be used.
+Overrides environment variable $GITHUB_TOKEN.""",
+        required=False,
+    )
+    parser.add_argument(
+        "-f",
+        "--fail-existing",
+        dest="fail_existing",
+        action="store_true",
+        help="When given, fail the initialisation if the branch already exists.",
         required=False,
     )
 
     return parser.parse_known_args(args)
 
 
-def get_result_branch(config: "Union[ConfigParser, None]") -> "Union[str, None]":
+def get_result_branch(config: "Optional[ConfigParser]") -> "Optional[str]":
     return config.get("options", "result_branch") if config else None
-
-
-def create_orphan_branch(branch: str) -> None:
-    initial_branch = get_current_branch()
-    msg.print_orphan_initial_branch(initial_branch)
-    if not initial_branch:
-        msg.print_no_initial_branch()
-        err.exit_with_code(err.ErrorCode.NO_INITIAL_BRANCH)
-    try:
-        msg.print_create_orphan_branch(branch)
-        process.run("git", "checkout", "--orphan", branch)
-        git_clean_current()
-        if os.path.exists(GITIGNORE_FILE):
-            process.run("git", "rm", GITIGNORE_FILE)
-        create_result_branch_readme()
-        process.run("git", "add", README_FILE)
-        process.run("git", "commit", "-n", "-a", "-m", "'Initial Commit'")
-        process.run("git", "push", "origin", branch)
-    finally:
-        process.run("git", "reset", "--hard")
-        process.run("git", "checkout", "-f", initial_branch)
-
-
-def get_current_branch() -> str:
-    args = ("git", "symbolic-ref", "--short", "HEAD")
-    run_result = process.run(*args, stdout=subprocess.PIPE)
-    return run_result.stdout.strip()
-
-
-def git_clean_current() -> None:
-    process.run("git", "rm", "-rf", ".")
-
-
-README_FILE = "README.md"
-GITIGNORE_FILE = ".gitignore"
-
-
-def create_result_branch_readme() -> None:
-    with open(README_FILE, "w") as readme_file:
-        readme_file.write("# Benchmark Results\n")

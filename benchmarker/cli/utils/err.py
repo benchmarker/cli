@@ -9,6 +9,9 @@ class ErrorCode(Enum):
     NO_RESULT_BRANCH = 1
     NO_INITIAL_BRANCH = 2
     KEYBOARD_INTERRUPT = 3
+    NO_GITHUB_TOKEN = 4
+    NO_GITHUB_USER_REPO = 5
+    RESULT_BRANCH_EXISTS = 6
 
 
 def exit_with_code(*error_codes: "ErrorCode") -> "NoReturn":

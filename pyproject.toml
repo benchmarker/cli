@@ -85,6 +85,7 @@ classifiers = [
 python = "^3.7.0"
 colored = "^1.4.3"
 pyperf = "^2.3.1"
+PyGithub = "^1.55"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.0.0"
