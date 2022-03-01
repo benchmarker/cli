@@ -28,6 +28,7 @@ MANIFEST
 version.txt
 pip-wheel-metadata
 poetry.lock
+artifacts/
 
 # Installer logs
 pip-log.txt

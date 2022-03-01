@@ -9,14 +9,22 @@ from github import (
 )
 
 from benchmarker.cli.utils import (
+    env,
     err,
     msg,
 )
 
 
+def get_repo() -> "Repository.Repository":
+    return _get_repo(Github(env.get_gh_token()), env.get_gh_user_repo())
+
+
 def create_orphan_branch(
     gh: "Github", repo: str, branch: str, fail_existing: bool = False
 ) -> None:
+    """
+    Create branch in repo without shared history with main branch.
+    """
     if _get_branch(gh, repo, branch):
         return (
             err.exit_with_code(err.ErrorCode.RESULT_BRANCH_EXISTS)
@@ -29,10 +37,6 @@ def create_orphan_branch(
     gh_commit = gh_repo.create_git_commit(INITIAL_COMMIT_MSG, gh_tree, [])
     msg.print_create_orphan_branch(branch, repo)
     gh_repo.create_git_ref(f"refs/heads/{branch}", gh_commit.sha)
-
-
-INITIAL_COMMIT_MSG = "Initial commit"
-INITIAL_TREE_ELEMENT = InputGitTreeElement(".gitignore", "100644", "blob", "")
 
 
 def _get_branch(gh: "Github", repo: str, branch: str) -> "Optional[Branch.Branch]":
@@ -50,3 +54,7 @@ def _get_repo(gh: "Github", repo: str) -> "Repository.Repository":
         return gh.get_repo(repo)
     except GithubException as e:
         raise SystemExit(e) from e
+
+
+INITIAL_COMMIT_MSG = "Initial commit"
+INITIAL_TREE_ELEMENT = InputGitTreeElement(".gitignore", "100644", "blob", "")

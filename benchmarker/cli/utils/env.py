@@ -6,7 +6,6 @@ from enum import Enum
 from typing import (
     Dict,
     Generator,
-    Optional,
 )
 
 __all__ = ["is_verbose_logging", "process_env"]
@@ -24,16 +23,19 @@ def get_config_file_path() -> str:
     return str(env_config_file or default_config_file)
 
 
-def get_gh_token() -> Optional[str]:
+def get_gh_token() -> str:
     """Get the github token from environment variable"""
-    gh_token = _get_env_var(EnvironmentVariable.GH_TOKEN)
-    return str(gh_token) if gh_token else None
+    return str(_get_env_var(EnvironmentVariable.GH_TOKEN, True))
 
 
-def get_gh_user_repo() -> Optional[str]:
+def get_gh_user_repo() -> str:
     """Get the github user/repo from environment variable"""
-    gh_user_repo = _get_env_var(EnvironmentVariable.GH_USER_REPO)
-    return str(gh_user_repo) if gh_user_repo else None
+    return str(_get_env_var(EnvironmentVariable.GH_USER_REPO, True))
+
+
+def get_gh_commit_sha() -> str:
+    """Get the commit sha from the environment variable"""
+    return str(_get_env_var(EnvironmentVariable.COMMIT_SHA) or '')
 
 
 def _get_env_var(
@@ -47,9 +49,6 @@ def _get_env_var(
         return None
     except json.decoder.JSONDecodeError:
         return os.environ.get(env_var.value)
-
-
-DEFAULT_CONFIG_FILE = "benchmarker.ini"
 
 
 @contextmanager
@@ -71,13 +70,17 @@ class EnvironmentVariable(Enum):
 
     CONFIG = "BENCHMARKER_CONFIG"
     VERBOSE = "BENCHMARKER_VERBOSE"
-    GH_TOKEN = "GITHUB_TOKEN"
     GH_USER_REPO = "GITHUB_REPO"
+    GH_TOKEN = "GITHUB_TOKEN"
+    COMMIT_SHA = "COMMIT_SHA"
 
 
 class MissingEnvironmentVariableError(Exception):
     """Error for missing environment variable"""
 
     def __init__(self, env_var: "EnvironmentVariable"):
-        super().__init__()
+        super().__init__(f"Missing environment variable: {env_var.value}")
         self.env_var = env_var
+
+
+DEFAULT_CONFIG_FILE = "benchmarker.ini"

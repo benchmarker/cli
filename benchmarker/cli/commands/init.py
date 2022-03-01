@@ -2,7 +2,6 @@ import argparse
 from configparser import ConfigParser
 from typing import (
     List,
-    Optional,
     Sequence,
     Tuple,
 )
@@ -18,11 +17,15 @@ from benchmarker.cli.utils import (
     gh,
     msg,
 )
+from benchmarker.cli.utils.conf import (
+    get_result_branch,
+    set_result_branch,
+)
 
 __all__ = ["main"]
 
 
-def main(args: Sequence[str], config: "Optional[ConfigParser]") -> None:
+def main(args: Sequence[str], config: "ConfigParser") -> None:
     """Initialise the branch in the repo the benchmark results are pushed to"""
     known_args, _ = parse_args(args)
     gh_token = known_args.gh_token or env.get_gh_token()
@@ -37,6 +40,14 @@ def main(args: Sequence[str], config: "Optional[ConfigParser]") -> None:
     elif not result_branch:
         msg.print_no_result_branch()
         err.exit_with_code(err.ErrorCode.NO_RESULT_BRANCH)
+
+    try:
+        # Write current config
+        set_result_branch(config, result_branch)
+        with open(env.get_config_file_path(), "w") as config_file:
+            config.write(config_file, False)
+    except Exception as e:
+        raise SystemExit(e) from e
 
     try:
         gh.create_orphan_branch(
@@ -60,7 +71,7 @@ def parse_args(args: "Sequence[str]") -> "Tuple[argparse.Namespace, List[str]]":
     )
     parser.add_argument(
         "-b",
-        "--branch",
+        "--result-branch",
         dest="branch",
         type=str,
         help="The branch to be created.\nOverrides config file.",
@@ -68,7 +79,7 @@ def parse_args(args: "Sequence[str]") -> "Tuple[argparse.Namespace, List[str]]":
     )
     parser.add_argument(
         "-r",
-        "--repo",
+        "--github-repo",
         dest="user_repo",
         type=str,
         help="""The github {user}/{repo} to be used.
@@ -77,7 +88,7 @@ Overrides environment variable $GITHUB_REPO.""",
     )
     parser.add_argument(
         "-t",
-        "--token",
+        "--github-token",
         dest="gh_token",
         type=str,
         help="""The github {token} to be used.
@@ -94,7 +105,3 @@ Overrides environment variable $GITHUB_TOKEN.""",
     )
 
     return parser.parse_known_args(args)
-
-
-def get_result_branch(config: "Optional[ConfigParser]") -> "Optional[str]":
-    return config.get("options", "result_branch") if config else None

@@ -43,7 +43,9 @@ def print_no_result_branch() -> None:
 
 
 def print_result_branch_not_found(branch: str, repo: str) -> None:
-    _print(f"Branch '{branch}' not found in repository '{repo}'", level=MessageLevel.QUIET)
+    _print(
+        f"Branch '{branch}' not found in repository '{repo}'", level=MessageLevel.QUIET
+    )
 
 
 def print_result_branch_exists(branch: str, repo: str) -> None:
@@ -59,9 +61,18 @@ def print_process_interrupted(exc: "KeyboardInterrupt") -> None:
     _print(f"\nInterrupted. {exc}")
 
 
+def print_command_not_in_config(command: str) -> None:
+    """Print unable to find command in config"""
+    _print(f"Command '{command}' not found in config", level=MessageLevel.QUIET)
+
+
 def print_unable_to_run(exc: "CalledProcessError") -> None:
     """Print error for failed sub process run"""
     _print(str(exc), level=MessageLevel.QUIET)
+
+
+def _print_error(text: str) -> None:
+    _print_stylized(text, Color.ERROR, MessageLevel.LOUD)
 
 
 class Color(Enum):
@@ -77,10 +88,6 @@ class MessageLevel(IntEnum):
     LOUD = 2
     NORMAL = 1
     QUIET = 0
-
-
-def _print_error(text: str) -> None:
-    _print_stylized(text, Color.ERROR, MessageLevel.LOUD)
 
 
 def _print_stylized(
@@ -100,7 +107,7 @@ def _print(*args: object, level: "MessageLevel" = MessageLevel.NORMAL) -> None:
     print(*args)
 
 
-def _level() -> MessageLevel:
+def _level() -> "MessageLevel":
     """Minium threshold level for logging to occur"""
 
     return MessageLevel.QUIET if is_verbose_logging() else MessageLevel.NORMAL
